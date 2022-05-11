@@ -18,5 +18,5 @@ or
 ```
 > pelion-edge-tools.test-lwm2m
 ```
-The command will either return `success` or print out the handshake failure. If the command is executed from a directory with write access, the full `openssl` output can be found in `test-bootstrap.txt` and `test-lwm2m.txt`. 
+The command will either return `success` or print out the handshake failure. The full `openssl` output can be found in `~/snap/pelion-edge-tools/common/`, in files `test-bootstrap.txt` and `test-lwm2m.txt`. 
 
