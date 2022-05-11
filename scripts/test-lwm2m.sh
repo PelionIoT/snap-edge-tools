@@ -1,19 +1,13 @@
 #!/bin/sh
 
-# check if user has write permission to current folder
-RESULT=`stat -c '%a' .`
-RESULT=`expr $RESULT / 400`
+# exit on error
+set -e
 
 # use openssl to connect to lwm2m server using device credentials
-if [ $RESULT -ge 1 ]; then
-
-    # store output in test-lwm2m.txt
-    echo "Write openssl output to test-lwm2m.txt"
-    echo | openssl s_client -CAfile $SNAP/credentials/lwm2m.pem -key $SNAP/credentials/device01_key.pem -cert $SNAP/credentials/device01_cert.pem -connect lwm2m.us-east-1.mbedcloud.com:5684 2>test-lwm2m.txt > test-lwm2m.txt
-    RESULT=`grep 'Verify return code' test-lwm2m.txt`
-else
-    RESULT=`echo | openssl s_client -CAfile $SNAP/credentials/lwm2m.pem -key $SNAP/credentials/device01_key.pem -cert $SNAP/credentials/device01_cert.pem -connect lwm2m.us-east-1.mbedcloud.com:5684 2>/dev/null | grep 'Verify return code'`
-fi
+# store output in $SNAP_USER_COMMON/test-lwm2m.txt
+echo "Write openssl output to $SNAP_USER_COMMON/test-lwm2m.txt"
+echo | openssl s_client -CAfile $SNAP/credentials/lwm2m.pem -key $SNAP/credentials/device01_key.pem -cert $SNAP/credentials/device01_cert.pem -connect lwm2m.us-east-1.mbedcloud.com:5684 2>$SNAP_USER_COMMON/test-lwm2m.txt > $SNAP_USER_COMMON/test-lwm2m.txt
+RESULT=`grep 'Verify return code' $SNAP_USER_COMMON/test-lwm2m.txt`
 
 # get openssl return code and print result
 CODE=`echo $RESULT | awk -F' ' '{print $4}'`

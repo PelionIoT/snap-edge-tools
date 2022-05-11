@@ -1,18 +1,22 @@
 name: pelion-edge-tools
 base: core20
-version: '0.8'
+version: '0.9'
 summary: Tools for debugging Pelion Edge
 description: |
   Tools for debugging Pelion Edge.
 
 grade: devel
-confinement: devmode # use 'strict' once you have the right plugs and slots
+confinement: strict
 
 apps:
   test-bootstrap:
     command: bin/test-bootstrap.sh
+    plugs:
+      - network
   test-lwm2m:
     command: bin/test-lwm2m.sh
+    plugs:
+      - network
 
 parts:
   credentials:
