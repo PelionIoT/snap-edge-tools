@@ -1,6 +1,6 @@
 name: pelion-edge-tools
 base: core20
-version: '0.9'
+version: '1.0'
 summary: Tools for debugging Pelion Edge
 description: |
   Tools for debugging Pelion Edge.
@@ -17,6 +17,14 @@ apps:
     command: bin/test-lwm2m.sh
     plugs:
       - network
+  daemon:
+    command: bin/daemon.sh
+    plugs:
+      - network
+      - network-observe
+    daemon: simple
+    restart-condition: always
+    restart-delay: 5s
 
 parts:
   credentials:
@@ -28,5 +36,6 @@ parts:
     plugin: dump
     source: scripts/
     organize:
+      daemon.sh: bin/
       test-bootstrap.sh: bin/
       test-lwm2m.sh: bin/
