@@ -27,7 +27,22 @@ The output is appended to:
 /var/snap/pelion-edge-tools/common/daemon.txt
 ```
 
-Note that the log file must be manually cleared to free up disk space.
+Note that the log file must be manually cleared to free up disk space. Log file will grow around 1 kilobyte per minute.
+
+If you want to stop it from running, use the standard `snap` commands.
+
+```
+sudo snap stop pelion-edge-tools.daemon
+``` 
+
+and 
+
+```
+sudo snap start pelion-edge-tools.daemon
+``` 
+
+to restart it.
+
 
 
 ## Tools
