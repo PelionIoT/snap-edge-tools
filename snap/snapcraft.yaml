@@ -1,9 +1,9 @@
-name: pelion-edge-tools
+name: edge-tools
 base: core20
 version: '1.0'
-summary: Tools for debugging Pelion Edge
+summary: Tools for debugging Edge
 description: |
-  Tools for debugging Pelion Edge.
+  Tools for debugging Edge.
 
 grade: devel
 confinement: strict
