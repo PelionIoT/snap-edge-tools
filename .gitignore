@@ -1,0 +1,7 @@
+# Ignore files
+# You can still add, but you must use git add -f
+*.deb
+*.snap
+*.tmp
+*.$$$
+*.bak
