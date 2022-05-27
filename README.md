@@ -24,6 +24,8 @@ After installation, a daemon will check for network availability every 60 second
 ```
 ping api.snapcraft.io
 ping lwm2m.us-east-1.mbedcloud.com
+nc api.snapcraft.io 443
+nc lwm2m.us-east-1.mbedcloud.com 443
 edge-tools.test-lwm2m
 ```
 
