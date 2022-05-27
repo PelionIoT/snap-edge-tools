@@ -6,7 +6,7 @@ Clone this repository and use the build and deploy instructions from [Snapcraft]
 
 ```
 snapcraft --debug
-sudo snap install edge-tools_1.0_amd64.snap --dangerous --devmode
+sudo snap install edge-tools_1.0_amd64.snap --dangerous
 ```
 
 ## Connect Interfaces
