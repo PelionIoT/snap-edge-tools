@@ -1,5 +1,14 @@
 # Edge Tools
 
+<!-- nucloud:start -->
+[![nucloud](https://github.com/PelionIoT/snap-edge-tools/actions/workflows/nucloud.yml/badge.svg?branch=nucloud)](https://github.com/PelionIoT/snap-edge-tools/actions/workflows/nucloud.yml)
+[![nucloud branch](https://img.shields.io/badge/branch-nucloud-blue.svg)](https://github.com/IzumaNetworks/nucloud/blob/main/docs/standards.md)
+[![production](https://img.shields.io/badge/production-pre--nucloud-lightgrey.svg)](https://github.com/PelionIoT/snap-edge-tools/releases/tag/archive/pre-nucloud)
+
+Build and deploy: [docs/nucloud.md](docs/nucloud.md).
+<!-- nucloud:end -->
+
+
 ## Build Snap
 
 Clone this repository and use the build and deploy instructions from [Snapcraft](https://snapcraft.io/docs/snapcraft-overview#heading--building-your-snap).
@@ -23,9 +32,9 @@ sudo snap connect edge-tools:network-observe
 After installation, a daemon will check for network availability every 60 seconds:
 ```
 ping api.snapcraft.io
-ping lwm2m.us-east-1.mbedcloud.com
+ping lwm2m.izuma.io
 nc api.snapcraft.io 443
-nc lwm2m.us-east-1.mbedcloud.com 443
+nc lwm2m.izuma.io 5684
 edge-tools.test-lwm2m
 ```
 
@@ -62,7 +71,7 @@ sudo snap remove edge-tools
 
 ### Test TLS and detect intrusive firewalls
 
-Use `openssl` to negotiate a TLS session with bilateral certificate verification.
+Use `openssl` to negotiate a TLS session and verify the server against the stage's CA in `credentials/`. Put `device_cert.pem` and `device_key.pem` beside those CAs for bilateral verification. `LWM2M_HOST`, `BOOTSTRAP_HOST` and `CREDENTIALS` override the defaults.
 
 For connecting to either bootstrap or LwM2M server run in a command prompt:
 
