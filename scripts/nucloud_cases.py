@@ -19,6 +19,9 @@ SSH = ['sshpass', '-e', 'ssh', '-o', 'StrictHostKeyChecking=no', '-o', 'UserKnow
        '-o', 'LogLevel=ERROR', '-o', 'ConnectTimeout=15', SSH_HOST]
 SSH_ENV = dict(os.environ, SSHPASS=EXTRA['ssh_password'])
 TOOLS = '/work/snap-edge-tools'
+# The stage's public CAs: credentials/<stage>/ when the stage has its own pins, else credentials/ (staging).
+STAGE_PINS = f"{TOOLS}/credentials/{os.environ.get('NUCLOUD_STAGE', '')}"
+PINS = STAGE_PINS if os.environ.get('NUCLOUD_STAGE') and os.path.isdir(STAGE_PINS) else f'{TOOLS}/credentials'
 counts = {'PASS': 0, 'FAIL': 0, 'BLOCKED': 0}
 
 
@@ -80,7 +83,7 @@ def last_line(text):
 
 
 def container_cases(hosts):
-    root = sandbox(f'{TOOLS}/credentials')
+    root = sandbox(PINS)
     # Bilateral: the stage's own developer certificate, from the env file, never one from a repo.
     with open(f'{root}/credentials/device_cert.pem', 'w') as cert:
         cert.write(EXTRA['edge_cert_pem'])
@@ -95,7 +98,7 @@ def container_cases(hosts):
 
 
 def gateway_cases(hosts):
-    root = sandbox(f'{TOOLS}/credentials')
+    root = sandbox(PINS)
     archive = subprocess.run(['tar', '-C', root, '-cz', '.'], stdout=subprocess.PIPE, check=True).stdout
     remote = on_gateway('mktemp -d /tmp/edge-tools.XXXXXX').stdout.decode().strip()
     shutil.rmtree(root)
@@ -133,7 +136,7 @@ def main():
              'BOOTSTRAP_HOST': host_port(servers['bootstrap']['url'])}
     refuse_production(*hosts.values())
     for name in ('lwm2m', 'bootstrap'):
-        with open(f'{TOOLS}/credentials/{name}.pem') as pinned:
+        with open(f'{PINS}/{name}.pem') as pinned:
             same = pinned.read().strip() == servers[name]['certificate'].strip()
         check(f'stage: credentials/{name}.pem is the CA in /v3/server-credentials', same, hosts[f'{name.upper()}_HOST'])
     device = get(f'/v3/devices/{GATEWAY}')
