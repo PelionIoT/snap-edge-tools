@@ -1,2 +1,3 @@
 .git
 *.snap
+.nucloud-logs/
