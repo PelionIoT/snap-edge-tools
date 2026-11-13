@@ -24,6 +24,8 @@
 #                                 # KUBECONFIG. The suite receives every one of them the cloud holds.
 #   HOST_TOOLS=("kubectl|hsm setup" "py:yaml|kubeconfig parsing")  # tools and python modules this repo needs on the host
 #   PREREQS_CMD=(...)             # a read-only repository check run last by make prereqs
+#   HTTP_LOG=no                   # tests: no per-request log (.nucloud-logs/<stage>/http.log)
+#   TIMINGS=no                    # tests: no per-case pytest durations (--durations=0 via PYTEST_ADDOPTS)
 #   EXTRA_ACCOUNTS=(staging=edge)  # tests: more accounts, as NUCLOUD_ACCOUNT_<NAME>_{API_KEY,USER,PASSWORD,CONFIG_JSON}
 #   TEST_FRAMEWORK=behave         # tests: how TAGS= reaches the suite: behave|cucumber|pytest|none (default)
 #   ACCOUNTS=(staging=edge)       # tests: the cloud.accounts.<name> a stage uses unless ACCOUNT= is given
@@ -576,6 +578,9 @@ suite_env() { # export NUCLOUD_STAGE, NUCLOUD_API_URL and NUCLOUD_<field> for ev
     if "${CLOUD[@]}" read-only | grep -qxF "$ENV"; then NUCLOUD_READ_ONLY=1; else NUCLOUD_READ_ONLY=; fi
     export NUCLOUD_READ_ONLY
     tag_env
+    # Per-case durations without touching selection or verdicts: pytest prints each case's setup/call/teardown
+    # time (`--durations=0`); TIMINGS=no in nucloud.env turns it off for a suite that cannot take it.
+    if [[ ${TIMINGS:-yes} != no ]]; then PYTEST_ADDOPTS="${PYTEST_ADDOPTS:+$PYTEST_ADDOPTS }--durations=0"; export PYTEST_ADDOPTS; fi
     for f in API_KEY USER PASSWORD ROOT_USER ROOT_PASSWORD CONFIG_JSON ACCOUNT_ID; do
         v=$(stage_value "$ENV" "$f") || die "cannot read $ENV's ${f,,} fact${ACCOUNT:+ (ACCOUNT=$ACCOUNT)}"
         export "NUCLOUD_$f=$v"
@@ -640,11 +645,24 @@ suite() { # suite <verb> <command...>: run a command of the suite image against 
     local logs=$PWD/.nucloud-logs/$ENV
     mkdir -p "$logs"
     docker rm -fv "$SUITE_CONTAINER" >/dev/null 2>&1 || true
-    # Output passes through redact_secrets: a suite that prints its key or password never leaves it in a log.
-    (set -o pipefail; docker run --init --name "$SUITE_CONTAINER" --platform "$PLATFORM" -e NUCLOUD_STAGE -e NUCLOUD_API_URL -e NUCLOUD_API_KEY \
+    # nucloud-http.py goes in as the container's sitecustomize: Python's urllib3 then appends one line per request to
+    # $NUCLOUD_LOGS/http.log (HTTP_LOG=no in nucloud.env turns it off). The image's PYTHONPATH is kept after it.
+    local http=() pp
+    if [[ ${HTTP_LOG:-yes} != no && -f nucloud-http.py ]]; then
+        pp=$(docker image inspect "$ref" --format '{{range .Config.Env}}{{println .}}{{end}}' 2>/dev/null | sed -n 's/^PYTHONPATH=//p' | head -1)
+        http=(-e "PYTHONPATH=/nucloud-hooks${pp:+:$pp}" -e NUCLOUD_HTTP_LOG=/nucloud-logs/http.log)
+    fi
+    docker create --init --name "$SUITE_CONTAINER" --platform "$PLATFORM" -e NUCLOUD_STAGE -e NUCLOUD_API_URL -e NUCLOUD_API_KEY \
         -e NUCLOUD_USER -e NUCLOUD_PASSWORD -e NUCLOUD_ROOT_USER -e NUCLOUD_ROOT_PASSWORD -e NUCLOUD_CONFIG_JSON -e NUCLOUD_ACCOUNT_ID \
-        -e NUCLOUD_READ_ONLY -e NUCLOUD_TAGS -e NUCLOUD_EXCLUDE_TAGS -e NUCLOUD_TAG_ARGS -e SUITES ${EXTRA_ENV[@]+"${EXTRA_ENV[@]}"} \
-        -v /nucloud-logs -e NUCLOUD_LOGS=/nucloud-logs "$ref" "$@" 2>&1 | redact_secrets) &
+        -e NUCLOUD_READ_ONLY -e NUCLOUD_TAGS -e NUCLOUD_EXCLUDE_TAGS -e NUCLOUD_TAG_ARGS -e SUITES -e PYTEST_ADDOPTS ${EXTRA_ENV[@]+"${EXTRA_ENV[@]}"} \
+        ${http[@]+"${http[@]}"} -v /nucloud-logs -e NUCLOUD_LOGS=/nucloud-logs "$ref" "$@" >/dev/null || die "cannot create the suite container from $ref"
+    if [[ ${#http[@]} -gt 0 ]]; then
+        local hooks; hooks=$(mktemp -d); cp nucloud-http.py "$hooks/sitecustomize.py"
+        docker cp "$hooks/." "$SUITE_CONTAINER":/nucloud-hooks >/dev/null || die "cannot copy the request logger into $SUITE_CONTAINER"
+        rm -rf "$hooks"
+    fi
+    # Output passes through redact_secrets: a suite that prints its key or password never leaves it in a log.
+    (set -o pipefail; docker start -a "$SUITE_CONTAINER" 2>&1 | redact_secrets) &
     local client=$! rc=0
     trap 'trap "" HUP INT TERM; docker stop "$SUITE_CONTAINER" >/dev/null 2>&1 || true; suite_logs "$logs"; exit 143' HUP INT TERM
     wait "$client" || rc=$?
